@@ -18,7 +18,7 @@ property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
-property :owner, [String, Integer, nil], default: ENV['USER'], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
+property :owner, [String, Integer, nil], default: node['current_user'], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
 property :group, [String, Integer, nil], default: node['root_group'], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g).gid : g }
 property :mode, [String, Integer, nil], coerce: proc { |m| m.is_a?(String) ? m.to_i(8) : m }
 property :inherits, [true, false]
@@ -69,7 +69,7 @@ load_current_value do |new_resource|
 
   # Take defaults from existing file
   stat = safe_stat(new_resource.path)
-  new_resource.owner = stat&.uid || ENV['USER'] if new_resource.owner.nil?
+  new_resource.owner = stat&.uid || node['current_user'] if new_resource.owner.nil?
   new_resource.group = stat&.gid || node['root_group'] if new_resource.group.nil?
   new_resource.mode = stat&.mode & 32_767 || 0o0644 if new_resource.mode.nil?
   new_resource.sha256 = Digest::SHA256.file(new_resource.path).hexdigest unless stat.nil?
@@ -108,14 +108,15 @@ action :create do
       # Download file to temp directory
       temp_file = Tempfile.new('s3file', cache_path, mode: 0o0700)
       temp_file.close
-      file "set temp file #{temp_file.path} permissions" do
-        path temp_file.path
-        owner ENV['USER']
-        group node['root_group']
-        rights :full_control, ENV['USER']
-        rights :full_control, 'Administrators'
-        only_if { node['os'] == 'windows' }
-      end.run_action(:create)
+      if node['os'] == 'windows'
+        file "set temp file #{temp_file.path} permissions" do
+          path temp_file.path
+          owner node['current_user']
+          group node['root_group']
+          rights :full_control, node['current_user']
+          rights :full_control, 'Administrators'
+        end.run_action(:create)
+      end
       obj.download_file(temp_file.path)
 
       # Update catalog for future runs

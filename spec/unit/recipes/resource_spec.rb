@@ -24,7 +24,6 @@ describe 'remote_file_s3_test::default' do
       end
 
       before do
-        ENV['USER'] = 'root'
         chef_run.converge(described_recipe)
       end
 
@@ -52,6 +51,7 @@ describe 'remote_file_s3_test::default' do
 
       it 'creates new s3 file' do
         expect(chef_run).to create_remote_file_s3("#{dir_path}/new_file.txt")
+        expect(chef_run).to create_remote_file_s3("#{dir_path}/file_no_owner.txt")
       end
 
       it 'creates file to be overwritten' do
