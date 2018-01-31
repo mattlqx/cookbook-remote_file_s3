@@ -62,6 +62,9 @@ rescue Errno::ENOENT
 end
 
 load_current_value do |new_resource|
+  # Load region from ohai data
+  new_resource.region = node['ec2']&.fetch('region', nil) || 'us-west-2'
+
   deps(new_resource)
 
   # Take defaults from existing file
@@ -87,9 +90,6 @@ load_current_value do |new_resource|
   s3 = Aws::S3::Resource.new(region: new_resource.region)
   obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
   new_resource.etag = obj.etag.tr('"', '')
-
-  # Load region from ohai data
-  new_resource.region = node['ec2']&.fetch('region', nil) || 'us-west-2'
 end
 
 action :create do

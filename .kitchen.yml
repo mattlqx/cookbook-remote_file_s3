@@ -32,6 +32,6 @@ suites:
       remote_file_s3_test:
         aws_access_key_id: <%= s3['access_key_id'] %>
         aws_secret_access_key: <%= s3['secret_access_key'] %>
-        region: <%= s3['region'] %>
+        region:
         bucket: <%= s3['bucket'] %>
         file: <%= s3['file'] %>
