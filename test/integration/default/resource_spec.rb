@@ -27,6 +27,12 @@ control 'remote-file-s3-windows-1' do
       it { should be_allowed('full-control', by_user: "#{domain}\\vagrant") }
     end
   end
+
+  describe file('c:/remote_file_s3/file_no_owner.txt') do
+    it { should exist }
+    its('size') { should be > 0 } # rubocop:disable Style/NumericPredicate
+    it { should be_allowed('full-control', by_user: "#{domain}\\vagrant") }
+  end
 end
 
 control 'remote-file-s3-linux-1' do
@@ -44,6 +50,7 @@ control 'remote-file-s3-linux-1' do
   end
 
   %w[
+    file_no_owner.txt
     existing_file_good_ownership.txt
     existing_file_bad_ownership.txt
   ].each do |f|

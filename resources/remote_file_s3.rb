@@ -18,9 +18,9 @@ property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
-property :owner, [String, Integer], default: ENV['USER'], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
-property :group, [String, Integer], default: node['root_group'], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g).gid : g }
-property :mode, [String, Integer], coerce: proc { |m| m.is_a?(String) ? m.to_i(8) : m }
+property :owner, [String, Integer, nil], default: ENV['USER'], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
+property :group, [String, Integer, nil], default: node['root_group'], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g).gid : g }
+property :mode, [String, Integer, nil], coerce: proc { |m| m.is_a?(String) ? m.to_i(8) : m }
 property :inherits, [true, false]
 property :sha256, String # property is used for state and not intended to be set during usage
 property :etag, String # property is used for state and not intended to be set during usage

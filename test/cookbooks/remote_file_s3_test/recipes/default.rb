@@ -58,3 +58,11 @@ end
     region node['remote_file_s3_test']['region']
   end
 end
+
+remote_file_s3 "#{dir_path}/file_no_owner.txt" do
+  aws_access_key_id node['remote_file_s3_test']['aws_access_key_id']
+  aws_secret_access_key node['remote_file_s3_test']['aws_secret_access_key']
+  bucket node['remote_file_s3_test']['bucket']
+  remote_path node['remote_file_s3_test']['file']
+  region node['remote_file_s3_test']['region']
+end

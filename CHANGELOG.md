@@ -2,6 +2,12 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.0.2
+- [mattlqx] - Fix issue with nil for owner, group or mode.
+
+## 1.0.1
+- [mattlqx] - Fix lint and move default for aws region ahead in code.
+
 ## 1.0.0
 - [mattlqx] - Initial release! 🕺
 
