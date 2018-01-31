@@ -1,0 +1,22 @@
+language: ruby
+rvm:
+  - 2.4
+cache: bundler
+sudo: false
+dist: trusty
+
+script:
+  - bundle install
+  - bundle exec rubocop --version
+  - travis_wait 60 bundle exec rubocop
+  - bundle exec foodcritic --version
+  - travis_wait 60 bundle exec foodcritic . --exclude spec
+  - travis_wait 60 bundle exec rspec spec
+before_install:
+  - openssl aes-256-cbc -K $encrypted_5ef3ee01d0c9_key -iv $encrypted_5ef3ee01d0c9_iv -in supermarket.pem.enc -out ~\/.chef/supermarket.pem -d
+deploy:
+  provider: script
+  script: rvm use 2.4 do bash -c 'bundle install && bundle exec knife supermarket share remote_file_s3 -o .. --config-option node_name=mkulka --config-option client_key=.travis/supermarket.pem -m https://supermarket.chef.io'
+  skip_cleanup: true
+  on:
+    tags: true

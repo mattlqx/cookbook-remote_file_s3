@@ -4,9 +4,6 @@ driver:
 
 provisioner:
   name: chef_zero
-  # You may wish to disable always updating cookbooks in CI or other testing environments.
-  # For example:
-  #   always_update_cookbooks: <%= !ENV['CI'] %>
   always_update_cookbooks: true
 
 verifier:
@@ -15,12 +12,26 @@ verifier:
 platforms:
   - name: ubuntu-16.04
   - name: centos-7
+  - name: osx-sierra
+  - name: windows-2012r2
+    driver:
+      name: vagrant
+      customize:
+        rtcuseutc: "off"
+    transport:
+      name: winrm
+    attributes:
+      test_owner: 'Administrator'
 
+<% s3 = YAML.load(ERB.new(IO.read('.s3.yml')).result) %>
 suites:
   - name: default
     run_list:
-      - recipe[remote_s3_file::default]
-    verifier:
-      inspec_tests:
-        - test/smoke/default
+      - recipe[remote_file_s3_test::default]
     attributes:
+      remote_file_s3_test:
+        aws_access_key_id: <%= s3['access_key_id'] %>
+        aws_secret_access_key: <%= s3['secret_access_key'] %>
+        region: <%= s3['region'] %>
+        bucket: <%= s3['bucket'] %>
+        file: <%= s3['file'] %>

@@ -105,3 +105,5 @@ Strainerfile
 ###########
 .vagrant
 Vagrantfile
+.s3.yml
+coverage
