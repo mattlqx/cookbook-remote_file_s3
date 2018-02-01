@@ -2,6 +2,9 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.0.5
+- [mattlqx] - Don't throw an exception if group or user doesn't exist at compilation.
+
 ## 1.0.4
 - [mattlqx] - Rearrange some statements to better accomodate Windows.
 

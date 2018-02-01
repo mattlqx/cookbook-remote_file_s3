@@ -18,8 +18,28 @@ property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
-property :owner, [String, Integer, nil], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
-property :group, [String, Integer, nil], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g)&.gid : g }
+property :owner, [String, Integer, nil], coerce: proc { |o|
+  if o.is_a?(String) && node['os'] != 'windows'
+    begin
+      Etc.getpwnam(o)&.uid
+    rescue ArgumentError
+      o
+    end
+  else
+    o
+  end
+}
+property :group, [String, Integer, nil], coerce: proc { |g|
+  if g.is_a?(String) && node['os'] != 'windows'
+    begin
+      Etc.getgrnam(g)&.gid
+    rescue ArgumentError
+      g
+    end
+  else
+    g
+  end
+}
 property :mode, [String, Integer, nil], coerce: proc { |m| m.is_a?(String) && !m.nil? ? m.to_i(8) : m }
 property :inherits, [true, false]
 property :sha256, String # property is used for state and not intended to be set during usage
