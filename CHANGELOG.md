@@ -2,6 +2,9 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.0.4
+- [mattlqx] - Rearrange some statements to better accomodate Windows.
+
 ## 1.0.3
 - [mattlqx] - Use node for current user.
 

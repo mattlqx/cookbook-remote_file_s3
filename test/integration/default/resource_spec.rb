@@ -50,7 +50,6 @@ control 'remote-file-s3-linux-1' do
   end
 
   %w[
-    file_no_owner.txt
     existing_file_good_ownership.txt
     existing_file_bad_ownership.txt
   ].each do |f|
@@ -62,5 +61,14 @@ control 'remote-file-s3-linux-1' do
       its('group') { should eq os.darwin? ? 'wheel' : 'root' }
       its('mode') { should eq 0o0644 }
     end
+  end
+
+  describe file('/tmp/remote_file_s3/file_no_owner.txt') do
+    it { should exist }
+    its('size') { should be > 0 } # rubocop:disable Style/NumericPredicate
+    its('content') { should_not eq 'some test content here' }
+    its('owner') { should eq 'root' }
+    its('group') { should eq os.darwin? ? 'staff' : 'root' }
+    its('mode') { should eq 0o600 }
   end
 end

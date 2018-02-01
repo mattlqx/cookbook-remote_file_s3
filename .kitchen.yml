@@ -11,8 +11,20 @@ verifier:
 
 platforms:
   - name: ubuntu-16.04
+    attributes:
+      test_owner: root
+      test_group: root
+      test_mode: '644'
   - name: centos-7
+    attributes:
+      test_owner: root
+      test_group: root
+      test_mode: '644'
   - name: osx-sierra
+    attributes:
+      test_owner: root
+      test_group: wheel
+      test_mode: '644'
   - name: windows-2012r2
     driver:
       name: vagrant
@@ -22,6 +34,8 @@ platforms:
       name: winrm
     attributes:
       test_owner: 'Administrator'
+      test_group: 'Administrators'
+      test_mode:
 
 <% s3 = YAML.load(ERB.new(IO.read('.s3.yml')).result) %>
 suites:

@@ -18,9 +18,9 @@ property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
-property :owner, [String, Integer, nil], default: node['current_user'], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
-property :group, [String, Integer, nil], default: node['root_group'], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g).gid : g }
-property :mode, [String, Integer, nil], coerce: proc { |m| m.is_a?(String) ? m.to_i(8) : m }
+property :owner, [String, Integer, nil], coerce: proc { |o| o.is_a?(String) && node['os'] != 'windows' ? Etc.getpwnam(o)&.uid : o }
+property :group, [String, Integer, nil], coerce: proc { |g| g.is_a?(String) && node['os'] != 'windows' ? Etc.getgrnam(g)&.gid : g }
+property :mode, [String, Integer, nil], coerce: proc { |m| m.is_a?(String) && !m.nil? ? m.to_i(8) : m }
 property :inherits, [true, false]
 property :sha256, String # property is used for state and not intended to be set during usage
 property :etag, String # property is used for state and not intended to be set during usage
@@ -66,15 +66,16 @@ load_current_value do |new_resource|
   new_resource.region = node['ec2']&.fetch('region', nil) || 'us-west-2'
 
   deps(new_resource)
+  stat = safe_stat(new_resource.path) || current_value_does_not_exist!
 
   # Take defaults from existing file
-  stat = safe_stat(new_resource.path)
-  new_resource.owner = stat&.uid || node['current_user'] if new_resource.owner.nil?
-  new_resource.group = stat&.gid || node['root_group'] if new_resource.group.nil?
-  new_resource.mode = stat&.mode & 32_767 || 0o0644 if new_resource.mode.nil?
-  new_resource.sha256 = Digest::SHA256.file(new_resource.path).hexdigest unless stat.nil?
-
-  current_value_does_not_exist! if stat.nil?
+  unless node['os'] == 'windows'
+    # TODO: This unfortunately is kinda hard to do in Windows, but make an effort
+    new_resource.owner = stat&.uid || node['current_user'] if new_resource.owner.nil?
+    new_resource.group = stat&.gid || node['root_group'] if new_resource.group.nil?
+    new_resource.mode = stat&.mode & 32_767 || 0o0644 if new_resource.mode.nil?
+  end
+  new_resource.sha256 = Digest::SHA256.file(new_resource.path).hexdigest
 
   # Load metadata from existing file
   owner stat.uid
@@ -111,10 +112,11 @@ action :create do
       if node['os'] == 'windows'
         file "set temp file #{temp_file.path} permissions" do
           path temp_file.path
-          owner node['current_user']
+          owner node['current_user'] if node['current_user']
           group node['root_group']
-          rights :full_control, node['current_user']
+          rights :full_control, node['current_user'] if node['current_user']
           rights :full_control, 'Administrators'
+          rights :full_control, 'CREATOR OWNER'
         end.run_action(:create)
       end
       obj.download_file(temp_file.path)
@@ -133,9 +135,9 @@ action :create do
           instance_variable_set(:@deny_rights, new_resource.deny_rights)
           inherits new_resource.inherits unless new_resource.inherits.nil?
         else
-          owner stat&.uid || new_resource.owner unless node['os'] == 'windows'
-          group stat&.gid || new_resource.group unless node['os'] == 'windows'
-          mode stat&.mode & 32_767 || new_resource.mode unless node['os'] == 'windows'
+          owner stat&.uid || new_resource.owner
+          group stat&.gid || new_resource.group
+          mode stat&.mode & 32_767 || new_resource.mode
         end
       end.run_action(:create)
       FileUtils.mv(temp_file.path, new_resource.path)

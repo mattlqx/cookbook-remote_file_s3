@@ -9,7 +9,6 @@ dir_path = case node['os']
 
 directory dir_path do
   if node['os'] == 'windows'
-    rights :full_control, node['current_user']
     rights :full_control, 'Administrators'
     inherits false
   end
