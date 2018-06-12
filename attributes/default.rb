@@ -1,0 +1,1 @@
+default['remote_file_s3']['aws-sdk-s3']['version'] = '~> 1.12.0'
