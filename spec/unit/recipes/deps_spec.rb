@@ -23,7 +23,7 @@ describe 'remote_file_s3::deps' do
       end
 
       it 'installs gems' do
-        expect(chef_run).to install_chef_gem('aws-sdk-s3')
+        expect(chef_run).to install_chef_gem('aws-sdk-s3').with_version('~> 1.12.0')
       end
     end
   end
