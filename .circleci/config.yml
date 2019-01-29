@@ -1,0 +1,95 @@
+# Ruby CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-ruby/ for more details
+#
+defaults: &defaults
+  docker:
+     - image: circleci/ruby:2.4.1-node-browsers
+  working_directory: ~/repo
+
+version: 2
+jobs:
+  bundle-install:
+    <<: *defaults
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v2-dependencies-{{ checksum "Gemfile.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v2-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            bundle install --jobs=4 --retry=3 --path vendor/bundle
+      - save_cache:
+          paths:
+            - ./vendor/bundle
+            - ./.bundle
+          key: v2-dependencies-{{ checksum "Gemfile.lock" }}
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v2-dependencies-{{ checksum "Gemfile.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v2-dependencies-
+      - run:
+          name: run tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
+
+            bundle install --path vendor/bundle
+            bundle exec rspec --format progress \
+                            --format RspecJunitFormatter \
+                            --out /tmp/test-results/rspec.xml \
+                            --format progress \
+                            $TEST_FILES
+      # collect reports
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
+  deploy:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/repo/workspace
+      - run:
+          name: deploy cookbook
+          command: |
+            mkdir ~/.chef
+            touch ~/.chef/supermarket.pem
+            chmod 0600 ~/.chef/supermarket.pem
+            echo ${CHEF_SUPERMARKET_KEY} > ~/.chef/supermarket.pem
+            knife supermarket share --config-option=node_name=mkulka --config-option=client_key=${HOME}/.chef/supermarket.pem -o .. remote_file_s3
+            shred -u ~/.chef/supermarket.pem
+workflows:
+  version: 2
+  test-build-deploy:
+    jobs:
+      - bundle-install:
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - bundle-install
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
