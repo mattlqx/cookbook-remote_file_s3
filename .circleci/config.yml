@@ -56,6 +56,12 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results
           destination: test-results
+  build:
+    <<: *defaults
+    steps:
+      - run:
+          name: no-op
+          command: true
   deploy:
     <<: *defaults
     steps:
@@ -68,7 +74,7 @@ jobs:
             mkdir ~/.chef
             touch ~/.chef/supermarket.pem
             chmod 0600 ~/.chef/supermarket.pem
-            echo ${CHEF_SUPERMARKET_KEY} > ~/.chef/supermarket.pem
+            echo ${CHEF_SUPERMARKET_KEY} | base64 -d > ~/.chef/supermarket.pem
             knife supermarket share --config-option=node_name=mkulka --config-option=client_key=${HOME}/.chef/supermarket.pem -o .. remote_file_s3
             shred -u ~/.chef/supermarket.pem
 workflows:
@@ -82,6 +88,12 @@ workflows:
       - test:
           requires:
             - bundle-install
+          filters:
+            tags:
+              only: /.*/
+      - build:
+          requires:
+            - test
           filters:
             tags:
               only: /.*/
