@@ -82,8 +82,12 @@ rescue Errno::ENOENT
 end
 
 load_current_value do |new_resource|
-  # Load region from ohai data
-  new_resource.region = node['ec2']&.fetch('region', nil) || 'us-west-2'
+  # Load region from ohai data if no region was provided
+  if node['ec2'] && !new_resource.region
+    new_resource.region = node['ec2']&.fetch('region', nil)
+  elsif !new_resource.region
+    new_resource.region = 'us-west-2'
+  end
 
   deps(new_resource)
   stat = safe_stat(new_resource.path) || current_value_does_not_exist!
