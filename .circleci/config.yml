@@ -61,7 +61,7 @@ jobs:
     steps:
       - run:
           name: no-op
-          command: true
+          command: "true"
   deploy:
     <<: *defaults
     steps:
