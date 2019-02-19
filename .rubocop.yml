@@ -5,7 +5,10 @@ Metrics/LineLength:
   Severity: refactor
   Max: 120
 
-Style/TrailingCommaInLiteral:
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
   Enabled: false
 
 Lint/ParenthesesAsGroupedExpression:

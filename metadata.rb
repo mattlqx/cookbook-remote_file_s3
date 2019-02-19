@@ -6,7 +6,7 @@ maintainer_email 'matt@lqx.net'
 license 'MIT'
 description 'Provides remote_file_s3 resource'
 long_description 'Provides remote_file_s3 resource that can idempotently download a file from an AWS S3 bucket'
-version '1.0.5'
+version '1.0.6'
 
 chef_version '>= 13' if respond_to?(:chef_version)
 if respond_to?(:supports)
