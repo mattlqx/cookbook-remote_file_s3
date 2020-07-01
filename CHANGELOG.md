@@ -2,6 +2,9 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.1.0
+- [mattlqx] - No longer write credentials to global config location.
+
 ## 1.0.6
 - [TylerSchmidtke] - Allow user to specify region in resource call
 
