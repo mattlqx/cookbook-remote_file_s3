@@ -9,23 +9,17 @@
 require 'spec_helper'
 
 describe 'remote_file_s3_test::default' do
-  %w[ubuntu/16.04 centos/7.4.1708 windows/2012R2 mac_os_x/10.13].each do |platform|
-    context "when on #{platform}" do
-      let(:chef_run) do
-        runner = ChefSpec::ServerRunner.new(platform: platform.split('/')[0], version: platform.split('/')[1])
-        runner.node.default['remote_file_s3_test'] = {
-          bucket: 'foo',
-          file: 'bar',
-          region: 'us-west-2',
-          aws_access_key_id: 'testkeyid',
-          aws_secret_access_key: 'testkey'
-        }
-        runner
-      end
+  %w(ubuntu/20.04 centos/7.4.1708 windows/2019 mac_os_x/10.15).each do |p|
+    platform(*p.split('/'))
 
-      before do
-        chef_run.converge(described_recipe)
-      end
+    context "when on #{p}" do
+      default_attributes['remote_file_s3_test'] = {
+        bucket: 'foo',
+        file: 'bar',
+        region: 'us-west-2',
+        aws_access_key_id: 'testkeyid',
+        aws_secret_access_key: 'testkey'
+      }
 
       let(:dir_path) { chef_run.node['platform'] == 'windows' ? 'c:/remote_file_s3' : '/tmp/remote_file_s3' }
 

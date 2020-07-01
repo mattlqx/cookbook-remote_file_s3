@@ -1,7 +1,7 @@
 AllCops:
-  TargetRubyVersion: 2.4
+  TargetRubyVersion: 2.6
 
-Metrics/LineLength:
+Layout/LineLength:
   Severity: refactor
   Max: 120
 
@@ -20,7 +20,7 @@ Metrics/BlockLength:
 Metrics/MethodLength:
   Enabled: false
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
   Enabled: false
 
 Naming/HeredocDelimiterNaming:

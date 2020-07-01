@@ -8,14 +8,14 @@ dir_path = case node['os']
            end
 
 directory dir_path do
-  if node['os'] == 'windows'
+  if platform_family?('windows')
     rights :full_control, 'Administrators'
     inherits false
   end
 end
 
 group 'otheruser' do
-  not_if { node['os'] == 'windows' }
+  not_if { platform_family?('windows') }
 end
 
 user 'otheruser' do
@@ -27,7 +27,7 @@ file "make #{dir_path}/existing_file_good_ownership.txt" do
   owner node['test_owner'] unless node['test_owner'].nil?
   group node['test_group'] unless node['test_group'].nil?
   mode node['test_mode'] unless node['test_mode'].nil?
-  rights :full_control, node['test_owner'] unless node['test_owner'].nil? || node['os'] != 'windows'
+  rights :full_control, node['test_owner'] unless node['test_owner'].nil? || !platform_family?('windows')
   content 'some test content here'
 end
 
@@ -36,15 +36,15 @@ file "make #{dir_path}/existing_file_bad_ownership.txt" do
   owner 'otheruser'
   group 'otheruser'
   mode node['test_mode'] unless node['test_mode'].nil?
-  rights :full_control, 'otheruser' if node['os'] == 'windows'
+  rights :full_control, 'otheruser' if platform_family?('windows')
   content 'some test content here'
 end
 
-%w[
+%w(
   new_file.txt
   existing_file_good_ownership.txt
   existing_file_bad_ownership.txt
-].each do |f|
+).each do |f|
   remote_file_s3 "#{dir_path}/#{f}" do
     owner node['test_owner'] unless node['test_owner'].nil?
     group node['test_group'] unless node['test_group'].nil?

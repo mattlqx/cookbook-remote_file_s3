@@ -3,6 +3,7 @@
 self.class.send(:include, Chef::Mixin::Securable::WindowsMacros)
 
 resource_name :remote_file_s3
+provides :remote_file_s3
 
 default_action :create
 
@@ -19,7 +20,7 @@ property :aws_secret_access_key, String, sensitive: true, desired_state: false, 
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
 property :owner, [String, Integer, nil], coerce: proc { |o|
-  if o.is_a?(String) && node['os'] != 'windows'
+  if o.is_a?(String) && !platform_family?('windows')
     begin
       Etc.getpwnam(o)&.uid
     rescue ArgumentError
@@ -30,7 +31,7 @@ property :owner, [String, Integer, nil], coerce: proc { |o|
   end
 }
 property :group, [String, Integer, nil], coerce: proc { |g|
-  if g.is_a?(String) && node['os'] != 'windows'
+  if g.is_a?(String) && !platform_family?('windows')
     begin
       Etc.getgrnam(g)&.gid
     rescue ArgumentError
@@ -48,31 +49,26 @@ rights_attribute(:rights)
 rights_attribute(:deny_rights)
 
 action_class do
-  def whyrun_supported?
-    true
-  end
 end
 
 # Load the AWS SDK gem, installing if needed
-def deps(new_resource) # rubocop:disable Metrics/AbcSize
-  begin
-    require 'aws-sdk-s3'
-  rescue LoadError
-    node.run_context.include_recipe 'remote_file_s3::deps'
-    require 'aws-sdk-s3'
+def deps(_new_resource)
+  require 'aws-sdk-s3'
+rescue LoadError
+  node.run_context.include_recipe 'remote_file_s3::deps'
+  require 'aws-sdk-s3'
+end
+
+def creds(new_resource)
+  if new_resource.aws_access_key_id.nil? && node.key?('ec2')
+    Aws::InstanceProfileCredentials.new
+  else
+    Aws::Credentials.new(
+      new_resource.aws_access_key_id,
+      new_resource.aws_secret_access_key,
+      new_resource.aws_session_token
+    )
   end
-
-  creds = if new_resource.aws_access_key_id.nil? && node.key?('ec2')
-            Aws::InstanceProfileCredentials.new
-          else
-            Aws::Credentials.new(
-              new_resource.aws_access_key_id,
-              new_resource.aws_secret_access_key,
-              new_resource.aws_session_token
-            )
-          end
-
-  Aws.config.update(credentials: creds)
 end
 
 def safe_stat(path)
@@ -93,7 +89,7 @@ load_current_value do |new_resource|
   stat = safe_stat(new_resource.path) || current_value_does_not_exist!
 
   # Take defaults from existing file
-  unless node['os'] == 'windows'
+  unless platform_family?('windows')
     # TODO: This unfortunately is kinda hard to do in Windows, but make an effort
     new_resource.owner = stat&.uid || node['current_user'] if new_resource.owner.nil?
     new_resource.group = stat&.gid || node['root_group'] if new_resource.group.nil?
@@ -112,7 +108,7 @@ load_current_value do |new_resource|
   etag catalog[new_resource.path]['etag']
 
   # Load the current etag from S3
-  s3 = Aws::S3::Resource.new(region: new_resource.region)
+  s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds(new_resource))
   obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
   new_resource.etag = obj.etag.tr('"', '')
 end
@@ -127,13 +123,13 @@ action :create do
   converge_if_changed :sha256, :etag do
     converge_by 'download file from s3' do
       # Prep the S3 object
-      s3 = Aws::S3::Resource.new(region: new_resource.region)
+      s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds(new_resource))
       obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
 
       # Download file to temp directory
       temp_file = Tempfile.new('s3file', cache_path, mode: 0o0700)
       temp_file.close
-      if node['os'] == 'windows'
+      if platform_family?('windows')
         file "set temp file #{temp_file.path} permissions" do
           path temp_file.path
           owner node['current_user'] if node['current_user']
@@ -154,7 +150,7 @@ action :create do
       # Set file metadata and atomically move
       stat = safe_stat(new_resource.path)
       file temp_file.path do
-        if node['os'] == 'windows'
+        if platform_family?('windows')
           instance_variable_set(:@rights, new_resource.rights)
           instance_variable_set(:@deny_rights, new_resource.deny_rights)
           inherits new_resource.inherits unless new_resource.inherits.nil?
@@ -173,7 +169,7 @@ action :create do
     owner new_resource.owner unless new_resource.owner.nil?
     group new_resource.group unless new_resource.group.nil?
     mode new_resource.mode unless new_resource.mode.nil?
-    if node['os'] == 'windows'
+    if platform_family?('windows')
       instance_variable_set(:@rights, new_resource.rights)
       instance_variable_set(:@deny_rights, new_resource.deny_rights)
       inherits new_resource.inherits unless new_resource.inherits.nil?

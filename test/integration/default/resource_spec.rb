@@ -15,10 +15,10 @@ control 'remote-file-s3-windows-1' do
     it { should be_allowed('full-control', by_user: "#{domain}\\vagrant") }
   end
 
-  %w[
+  %w(
     existing_file_good_ownership.txt
     existing_file_bad_ownership.txt
-  ].each do |f|
+  ).each do |f|
     describe file("c:/remote_file_s3/#{f}") do
       it { should exist }
       its('size') { should be > 0 } # rubocop:disable Style/NumericPredicate
@@ -49,10 +49,10 @@ control 'remote-file-s3-linux-1' do
     its('mode') { should eq 0o0644 }
   end
 
-  %w[
+  %w(
     existing_file_good_ownership.txt
     existing_file_bad_ownership.txt
-  ].each do |f|
+  ).each do |f|
     describe file("/tmp/remote_file_s3/#{f}") do
       it { should exist }
       its('size') { should be > 0 } # rubocop:disable Style/NumericPredicate
