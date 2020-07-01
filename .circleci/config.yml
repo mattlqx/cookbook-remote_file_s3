@@ -4,7 +4,7 @@
 #
 defaults: &defaults
   docker:
-     - image: circleci/ruby:2.4.1-node-browsers
+     - image: circleci/ruby:2.6-node
   working_directory: ~/repo
 
 version: 2
@@ -23,7 +23,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            bundle install --jobs=4 --retry=3 --path vendor/bundle
+            gem install bundler:2.1.4 && bundle install --jobs=4 --retry=3 --path vendor/bundle
       - save_cache:
           paths:
             - ./vendor/bundle
@@ -44,6 +44,7 @@ jobs:
             mkdir /tmp/test-results
             TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
 
+            gem install bundler:2.1.4
             bundle install --path vendor/bundle
             bundle exec rspec --format doc \
                             --format RspecJunitFormatter \

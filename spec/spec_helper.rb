@@ -6,5 +6,3 @@ require 'simplecov'
 
 SimpleCov.start
 SimpleCov.minimum_coverage 100
-
-at_exit { ChefSpec::Coverage.report! }
