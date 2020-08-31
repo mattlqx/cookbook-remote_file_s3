@@ -13,7 +13,7 @@ property :path, String, name_property: true, desired_state: false, callbacks: {
   }
 }
 property :remote_path, String, required: true, desired_state: false,
-                               coerce: proc { |p| p.start_with?('/') ? p[1..] : p }
+                               coerce: proc { |p| p.start_with?('/') ? p[1..-1] : p }
 property :bucket, String, required: true, desired_state: false
 property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
