@@ -13,11 +13,12 @@ property :path, String, name_property: true, desired_state: false, callbacks: {
   }
 }
 property :remote_path, String, required: true, desired_state: false,
-                               coerce: proc { |p| p.start_with?('/') ? p[1..-1] : p }
+                               coerce: proc { |p| p.start_with?('/') ? p[1..] : p }
 property :bucket, String, required: true, desired_state: false
 property :aws_access_key_id, String, desired_state: false
 property :aws_secret_access_key, String, sensitive: true, desired_state: false, identity: false
 property :aws_session_token, String, sensitive: true, desired_state: false, identity: false
+property :allow_instance_profile, [true, false], default: true, identity: false
 property :region, String, desired_state: false # default is handled in load_current_value
 property :owner, [String, Integer, nil], coerce: proc { |o|
   if o.is_a?(String) && !platform_family?('windows')
@@ -60,9 +61,9 @@ rescue LoadError
 end
 
 def creds(new_resource)
-  if new_resource.aws_access_key_id.nil? && node.key?('ec2')
+  if new_resource.aws_access_key_id.nil? && node.key?('ec2') && new_resource.allow_instance_profile
     Aws::InstanceProfileCredentials.new
-  else
+  elsif !new_resource.aws_access_key_id.nil?
     Aws::Credentials.new(
       new_resource.aws_access_key_id,
       new_resource.aws_secret_access_key,
@@ -75,6 +76,10 @@ def safe_stat(path)
   ::File::Stat.new(path)
 rescue Errno::ENOENT
   nil
+end
+
+def anonymous_head(new_resource)
+  Net::HTTP.start("#{new_resource.bucket}.s3-#{new_resource.region}.amazonaws.com").head(new_resource.remote_path)
 end
 
 load_current_value do |new_resource|
@@ -108,9 +113,15 @@ load_current_value do |new_resource|
   etag catalog[new_resource.path]['etag']
 
   # Load the current etag from S3
-  s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds(new_resource))
-  obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
-  new_resource.etag = obj.etag.tr('"', '')
+  creds_obj = creds(new_resource)
+  if creds_obj.nil?
+    # anonymous request
+    new_resource.etag = anonymous_head(new_resource)['etag']&.tr('"', '')
+  else
+    s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds(new_resource))
+    obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
+    new_resource.etag = obj.etag.tr('"', '')
+  end
 end
 
 action :create do
@@ -122,28 +133,38 @@ action :create do
 
   converge_if_changed :sha256, :etag do
     converge_by 'download file from s3' do
-      # Prep the S3 object
-      s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds(new_resource))
-      obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
-
-      # Download file to temp directory
       temp_file = Tempfile.new('s3file', cache_path, mode: 0o0700)
       temp_file.close
-      if platform_family?('windows')
-        file "set temp file #{temp_file.path} permissions" do
-          path temp_file.path
-          owner node['current_user'] if node['current_user']
-          group node['root_group']
-          rights :full_control, node['current_user'] if node['current_user']
-          rights :full_control, 'Administrators'
-          rights :full_control, 'CREATOR OWNER'
-        end.run_action(:create)
+
+      # Prep the S3 object
+      creds_obj = creds(new_resource)
+      if creds_obj.nil?
+        # anonymous request
+        remote_file temp_file.path do
+          source "https://#{new_resource.bucket}.s3-#{new_resource.region}.amazonaws.com/#{new_resource.remote_path}"
+        end
+        etag = anonymous_head(new_resource)['etag']&.tr('"', '')
+      else
+        s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds_obj)
+        obj = s3.bucket(new_resource.bucket).object(new_resource.remote_path)
+
+        # Download file to temp directory
+        if platform_family?('windows')
+          file "set temp file #{temp_file.path} permissions" do
+            path temp_file.path
+            owner node['current_user'] if node['current_user']
+            group node['root_group']
+            rights :full_control, node['current_user'] if node['current_user']
+            rights :full_control, 'Administrators'
+            rights :full_control, 'CREATOR OWNER'
+          end.run_action(:create)
+        end
+        obj.download_file(temp_file.path)
+        etag = obj.etag.tr('"', '')
       end
-      obj.download_file(temp_file.path)
 
       # Update catalog for future runs
       catalog = Aws::S3Catalog.new
-      etag = obj.etag.tr('"', '')
       catalog[new_resource.path] = { etag: etag, sha256: Digest::SHA256.file(temp_file.path).hexdigest }
       catalog.save
 

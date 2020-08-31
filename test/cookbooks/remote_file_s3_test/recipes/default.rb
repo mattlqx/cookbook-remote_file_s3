@@ -40,11 +40,11 @@ file "make #{dir_path}/existing_file_bad_ownership.txt" do
   content 'some test content here'
 end
 
-%w(
+%w[
   new_file.txt
   existing_file_good_ownership.txt
   existing_file_bad_ownership.txt
-).each do |f|
+].each do |f|
   remote_file_s3 "#{dir_path}/#{f}" do
     owner node['test_owner'] unless node['test_owner'].nil?
     group node['test_group'] unless node['test_group'].nil?
@@ -55,6 +55,7 @@ end
     bucket node['remote_file_s3_test']['bucket']
     remote_path node['remote_file_s3_test']['file']
     region node['remote_file_s3_test']['region']
+    allow_instance_profile false
   end
 end
 
@@ -64,4 +65,5 @@ remote_file_s3 "#{dir_path}/file_no_owner.txt" do
   bucket node['remote_file_s3_test']['bucket']
   remote_path node['remote_file_s3_test']['file']
   region node['remote_file_s3_test']['region']
+  allow_instance_profile false
 end

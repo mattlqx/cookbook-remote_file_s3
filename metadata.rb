@@ -5,7 +5,7 @@ maintainer 'Matt Kulka'
 maintainer_email 'matt@lqx.net'
 license 'MIT'
 description 'Provides remote_file_s3 resource'
-version '1.1.0'
+version '1.2.0'
 
 chef_version '>= 13'
 supports 'debian'

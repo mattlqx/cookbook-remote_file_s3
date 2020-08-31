@@ -2,6 +2,9 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.2.0
+- [mattlqx] - Allow using no credentials for anonymous requests and prevention of instance profile usage.
+
 ## 1.1.0
 - [mattlqx] - No longer write credentials to global config location.
 

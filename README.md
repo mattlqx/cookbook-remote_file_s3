@@ -41,6 +41,7 @@ end
 - `aws_acccess_key_id` - Explicitly use this access key, overriding any instance profile.
 - `aws_secret_access_key` - Explicitly use this access key, overriding any instance profile.
 - `aws_session_token` - Token required when using an access key for a role.
+- `allow_instance_profile` - Allow instance profile to be used for credentials when running in EC2. (default `true`)
 - `owner` - Username or UID that the file will be owned by.
 - `group` - Group name or GID that the file will be owned by.
 - `mode` - Access mode for the file.
