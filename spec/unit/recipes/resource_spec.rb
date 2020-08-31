@@ -9,7 +9,7 @@
 require 'spec_helper'
 
 describe 'remote_file_s3_test::default' do
-  %w(ubuntu/20.04 centos/7.4.1708 windows/2019 mac_os_x/10.15).each do |p|
+  %w[ubuntu/20.04 centos/7.4.1708 windows/2019 mac_os_x/10.15].each do |p|
     platform(*p.split('/'))
 
     context "when on #{p}" do
