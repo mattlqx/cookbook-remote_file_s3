@@ -142,7 +142,8 @@ action :create do
         # anonymous request
         remote_file temp_file.path do
           source "https://#{new_resource.bucket}.s3-#{new_resource.region}.amazonaws.com/#{new_resource.remote_path}"
-        end
+          sensitive true # don't need a diff
+        end.run_action(:create)
         etag = anonymous_head(new_resource)['etag']&.tr('"', '')
       else
         s3 = Aws::S3::Resource.new(region: new_resource.region, credentials: creds_obj)

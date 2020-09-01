@@ -2,6 +2,9 @@
 
 This file is used to list changes made in each version of the remote_file_s3 cookbook.
 
+## 1.2.2
+- [mattlqx] - Fix anonymous remote_file resource with run_action.
+
 ## 1.2.1
 - [mattlqx] - Revert rubocop advice for ruby 2.5.
 
