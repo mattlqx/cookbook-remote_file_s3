@@ -4,6 +4,7 @@ self.class.send(:include, Chef::Mixin::Securable::WindowsMacros)
 
 resource_name :remote_file_s3
 provides :remote_file_s3
+unified_mode true
 
 default_action :create
 
@@ -48,9 +49,6 @@ property :sha256, String # property is used for state and not intended to be set
 property :etag, String # property is used for state and not intended to be set during usage
 rights_attribute(:rights)
 rights_attribute(:deny_rights)
-
-action_class do
-end
 
 # Load the AWS SDK gem, installing if needed
 def deps(_new_resource)
